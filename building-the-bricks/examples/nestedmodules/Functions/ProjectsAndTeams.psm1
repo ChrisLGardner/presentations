@@ -1,0 +1,756 @@
+function Enable-TfsTeamIterationPath
+{
+    <#
+        .SYNOPSIS
+            This function will enable all iteration paths in the selected team project
+
+        .DESCRIPTION
+            This function will enable all iteration paths in the selected team project
+
+            There is currently no REST api for this functionality so it has to use the horrible
+            InternetExplorer comobject to do all it's work. You need to pass it a username and password
+            so it can login to the actual web page (for VSTS).
+
+        .PARAMETER Team
+            The name of the team
+
+        .PARAMETER Project
+            The name of the project under which the team can be found
+
+        .PARAMETER Uri
+            Uri of TFS serverm, including /DefaultCollection (or equivilent)
+
+        .PARAMETER Credential
+            Credentials of user with permissions to update iteration path
+
+        .PARAMETER UseDefaultCredentails
+            Switch to use the logged in users credentials for authenticating with TFS.
+
+        .EXAMPLE
+            Enable-TfsTeamIterationPath -Team 'Engineering' -Project 'Super Product' -Credential (Get-Credential) -Uri 'https://test.visualstudio.com/defaultcollection'
+
+            This will enable all the iteration paths for the Engineering team under the Super Product project.
+
+        .EXAMPLE
+            Enable-TfsTeamIterationPath -Uri 'https://test.localtfsserver.co.uk/defaultcollection' -UseDefaultCredentials -Team 'Engineering' -Project 'Super Product'
+
+            This will enable all the iteration paths for the Engineering team under the Super Product project using the logged in users credentials.
+
+    #>
+    [cmdletbinding()]
+    param
+    (
+        #[Parameter(ParameterSetName='WebSession', Mandatory,ValueFromPipeline)]
+        #[Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+
+        [Parameter(Mandatory)]
+        [String]$Team,
+
+        [parameter(Mandatory)]
+        [String]$Project,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [Parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [String]$uri,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [System.Management.Automation.PSCredential]$Credential,
+
+        [parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [switch]$UseDefaultCredentials
+
+    )
+    Process
+    {
+
+        $Browser = New-Object -ComObject InternetExplorer.Application
+
+        switch ($PsCmdlet.ParameterSetName)
+        {
+            'SingleConnection'
+            {
+                $Browser.Navigate("$uri/$project/$team/_admin/_iterations")
+                while ($Browser.Busy)
+                {
+                    Start-Sleep -Seconds 1
+                }
+
+                if ($Browser.LocationURL -like '*login.live.com*' )
+                {
+                    $Elements = $Browser.Document
+                    $Elements.getElementsByTagName('input') | foreach-object {
+                        if ($_.name -eq 'loginfmt') {
+                            $_.value = $Credential.Username
+                            $UsernameEnterred = $true
+                        }
+                        if ($_.name -eq 'passwd') {
+                            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Credential.Password)
+                            $Password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                            Remove-Variable -Name BSTR
+                            $_.value = $password
+                            Remove-Variable -Name Password
+                            $PasswordEnterred = $true
+                        }
+                        if ($_.Name -eq 'SI' -and $UsernameEnterred -and $PasswordEnterred)
+                        {
+                            $_.click()
+                        }
+                    }
+                }
+
+                while ($Browser.Busy)
+                {
+                    Start-Sleep -Seconds 1
+                }
+
+            }
+            'LocalConnection'
+            {
+            }
+        }
+
+        $Browser.Navigate("$uri/$project/$team/_admin/_iterations")
+        while ($Browser.Busy)
+        {
+            Start-Sleep -Seconds 1
+        }
+
+        $Elements = $Browser.Document
+        $Elements.body.getElementsByTagName('input') | Where-Object Type -eq checkbox | ForEach-Object {
+            $_.click()
+        }
+
+    }
+}
+
+function Get-TfsProject
+{
+    <#
+        .SYNOPSIS
+            This function gets a list of TFS team projects
+
+        .DESCRIPTION
+            This function gets a list of all the team projects from
+            the target TFS server that the user has access to.
+
+            The function will take either a websession object or a uri and
+            credentials. The web session can be piped to the fuction from the
+            Connect-TfsServer function.
+
+        .PARAMETER WebSession
+            Websession with connection details and credentials generated by Connect-TfsServer function
+
+        .PARAMETER Uri
+            Uri of TFS serverm, including /DefaultCollection (or equivilent)
+
+        .PARAMETER Username
+            The username to connect to the remote server with
+
+        .PARAMETER AccessToken
+            Access token for the username connecting to the remote server
+
+        .PARAMETER UseDefaultCredentails
+            Switch to use the logged in users credentials for authenticating with TFS.
+
+        .PARAMETER Project
+            Get details of a specific project.
+
+        .PARAMETER IncludeCapabilities
+            Get full details of a project, include source control method used and process template.
+
+        .EXAMPLE
+            Get-TfsTeamProject -WebSession $Session
+
+            This will get all the Projects that the user in the Web Session object has access to.
+
+        .EXAMPLE
+            Get-TfsTeamProject -Uri 'https://test.visualstudio.com/DefaultCollection'  -Username username@email.com -AccessToken (Get-Content C:\AccessToken.txt)
+
+            This will get all the Projects that the user has access to.
+    #>
+    [cmdletbinding()]
+    param
+    (
+        [Parameter(ParameterSetName='WebSession', Mandatory,ValueFromPipeline)]
+        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [Parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [String]$uri,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$Username,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$AccessToken,
+
+        [parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [switch]$UseDefaultCredentials,
+
+        [string]$Project,
+
+        [switch]$IncludeCapabilities
+
+    )
+
+    Process
+    {
+        $headers = @{'Content-Type'='application/json'}
+        $Parameters = @{}
+
+        #Use Hashtable to create param block for invoke-restmethod and splat it together
+        switch ($PsCmdlet.ParameterSetName)
+        {
+            'SingleConnection'
+            {
+                $WebSession = Connect-TfsServer -Uri $uri -Username $Username -AccessToken $AccessToken
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+
+            }
+            'LocalConnection'
+            {
+                $WebSession = Connect-TfsServer -uri $Uri -UseDefaultCredentials
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+            }
+            'WebSession'
+            {
+                $Uri = $WebSession.uri
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+                #Connection details here from websession, no creds needed as already there
+            }
+
+        }
+
+        #create the REST url
+        if ($Project)
+        {
+            $uri = "$uri/_apis/projects/$($Project)?api-version=1.0"
+            if ($IncludeCapabilities)
+            {
+                $Uri = "$Uri&includeCapabilities=true"
+            }
+        }
+        else
+        {
+            $uri = "$uri/_apis/projects?api-version=1.0"
+        }
+
+        $parameters.add('Uri',$uri)
+
+        #Attempt to get the data from the Rest API
+        try
+        {
+            $jsondata = Invoke-RestMethod @Parameters -ErrorAction Stop
+        }
+        catch
+        {
+            Throw
+        }
+
+        #Output data to the pipeline
+        if ($jsondata.count -gt 0)
+        {
+            write-output $jsondata.value
+        }
+        else
+        {
+            Write-Output $jsondata
+        }
+
+    }
+}
+
+function Get-TfsTeam
+{
+    <#
+        .SYNOPSIS
+            This function gets the teams in a TFS team project
+
+        .DESCRIPTION
+            This function gets the teams in a TFS team project from a target
+            TFS server, using either the WebSession provided or manually specified
+            URI and credentials.
+
+            If the project doesn't exist then an error will be returned. Wildcard searches are
+            not currently available.
+
+            You can also pipe the a WebSession object into the command to, either from a normal variable
+            or from the Connect-TfsServer function.
+
+        .PARAMETER WebSession
+            Websession with connection details and credentials generated by Connect-TfsServer function
+
+        .PARAMETER TeamProject
+            Existing Team Project Name
+
+
+        .PARAMETER Uri
+            Uri of TFS serverm, including /DefaultCollection (or equivilent)
+
+        .PARAMETER Username
+            The username to connect to the remote server with
+
+        .PARAMETER AccessToken
+            Access token for the username connecting to the remote server
+
+        .PARAMETER UseDefaultCredentails
+            Switch to use the logged in users credentials for authenticating with TFS.
+
+        .EXAMPLE
+
+            Get-TfsTeam -WebSession $Session -TeamProject t1
+
+            This will get all the teams currently on the T1 project on the TFS server
+            in the WebSession variable.
+
+        .EXAMPLE
+
+            Get-TfsTeam  -Uri https://test.visualstudio.com/DefaultCollection  -Username username@email.com -AccessToken (Get-Content C:\AccessToken.txt) -TeamProject t1
+
+            This will get all the teams currently on the T1 project on the TFS server
+            specified using the credentials provided.
+
+        .EXAMPLE
+
+            Connect-TfsServer -Uri "https://test.visualstudio.com/DefaultCollection -Username username@email.com -AccessToken (Get-Content C:\AccessToken.txt) |  Get-TfsTeam -TeamProject t1
+
+            This will get all the teams currently on the T1 project on the TFS server
+            in the WebSession provided by the Connect-TfsServer output.
+    #>
+    [cmdletbinding()]
+    param
+    (
+        [Parameter(ParameterSetName='WebSession', Mandatory,ValueFromPipeline)]
+        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+
+        [Parameter(Mandatory)]
+        [String]$Project,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [Parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [String]$uri,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$Username,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$AccessToken,
+
+        [parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [switch]$UseDefaultCredentials
+
+    )
+
+    Process
+    {
+        $headers = @{'Content-Type'='application/json'}
+        $Parameters = @{}
+
+        #Use Hashtable to create param block for invoke-restmethod and splat it together
+        switch ($PsCmdlet.ParameterSetName)
+        {
+            'SingleConnection'
+            {
+                $WebSession = Connect-TfsServer -Uri $uri -Username $Username -AccessToken $AccessToken
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+
+            }
+            'LocalConnection'
+            {
+                $WebSession = Connect-TfsServer -uri $Uri -UseDefaultCredentials
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+            }
+            'WebSession'
+            {
+                $Uri = $WebSession.uri
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+                #Connection details here from websession, no creds needed as already there
+            }
+
+        }
+
+        #create the REST url
+        $Project = $Project.Replace(' ','%20')
+        $uri = "$uri/_apis/projects/$Project/teams?api-version=1.0"
+        $Parameters.add('Uri', $Uri)
+
+        try
+        {
+            $jsondata = Invoke-RestMethod @Parameters -ErrorAction Stop
+        }
+        catch
+        {
+            Throw
+        }
+
+        #Output data to the pipeline
+        if ($jsondata.count -gt 0)
+        {
+            write-output $jsondata.value
+        }
+        else
+        {
+            Write-Output $jsondata
+        }
+    }
+}
+
+function New-TfsProject
+{
+    <#
+        .SYNOPSIS
+            This function will create a new team project.
+
+        .DESCRIPTION
+            This function will create a new team project.
+
+            The function will take either a websession object or a uri and
+            credentials. The web session can be piped to the fuction from the
+            Connect-TfsServer function.
+
+        .PARAMETER WebSession
+            Websession with connection details and credentials generated by Connect-TfsServer function
+
+        .PARAMETER Name
+            The name of the Project to be created
+
+        .PARAMETER Description
+            The description for the newly created project, defaults to match the name of the project
+
+        .PARAMETER Process
+            Process to use for the project, options are Agile, CMMI and Scrum
+
+        .PARAMETER VersionControl
+            Method of version control to use, options are tfvc or git
+
+        .PARAMETER Username
+            The username to connect to the remote server with
+
+        .PARAMETER AccessToken
+            Access token for the username connecting to the remote server
+
+        .PARAMETER Credential
+            Credential object for connecting to the target TFS server
+
+        .PARAMETER UseDefaultCredentails
+            Switch to use the logged in users credentials for authenticating with TFS.
+
+        .EXAMPLE
+            New-TfsProject -Name 'Engineering' -Description 'Engineering project' -Process Agile -VersionControl Git -WebSession $Session
+
+            This will create a new Engineering Project using git for source control and Agile process. The already created Web Session is used for authentication.
+
+        .EXAMPLE
+            New-TfsProject -Uri 'https://test.visualstudio.com/defaultcollection' -Username username@email.com -AccessToken (Get-Content C:\AccessToken.txt) -Name 'Engineering' -Description 'Engineering project' -Process Scrum -VersionControl tfvc
+
+            This will create a new Engineering Project using tfvc for source control and Scrum process on the specified server using the provided login details.
+
+    #>
+    [cmdletbinding()]
+    param
+    (
+        [Parameter(ParameterSetName='WebSession', Mandatory,ValueFromPipeline)]
+        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+
+        [Parameter(Mandatory)]
+        [String]$Name,
+
+        [String]$Description = $Name,
+
+        [parameter(Mandatory)]
+        #[ValidateSet('Agile','CMMI','Scrum','Scrum 2')]
+        [string]$Process,
+
+        [parameter(Mandatory)]
+        [ValidateSet('tfvc','Git')]
+        [string]$VersionControl,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [Parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [String]$uri,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$Username,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$AccessToken,
+
+        [parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [switch]$UseDefaultCredentials
+
+    )
+    Process
+    {
+        $headers = @{'Content-Type'='application/json'}
+        $Parameters = @{}
+
+        #Use Hashtable to create param block for invoke-restmethod and splat it together
+        switch ($PsCmdlet.ParameterSetName)
+        {
+            'SingleConnection'
+            {
+                $WebSession = Connect-TfsServer -Uri $uri -Username $Username -AccessToken $AccessToken
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+
+            }
+            'LocalConnection'
+            {
+                $WebSession = Connect-TfsServer -uri $Uri -UseDefaultCredentials
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+            }
+            'WebSession'
+            {
+                $Uri = $WebSession.uri
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+                #Connection details here from websession, no creds needed as already there
+            }
+        }
+
+        try
+        {
+            $ProjectExists = Invoke-RestMethod -Uri "$uri/_apis/projects/$($name)?api-version=1.0" @Parameters -ErrorAction Stop
+        }
+        catch
+        {
+            $ErrorObject = $_ | ConvertFrom-Json
+
+            if (-not($ErrorObject.Message -like '*The following project does not exist*'))
+            {
+                Throw $_
+            }
+        }
+
+        if ($ProjectExists)
+        {
+            #Write-Error 'The project already exists, please choose a new unique name'
+            Throw 'The project already exists, please choose a new unique name'
+        }
+
+        #Construct the uri and add it to paramaters block
+        $uri = "$uri/_apis/projects?api-version=2.0-preview"
+        $Parameters.Add('uri',$uri)
+
+        #Construct Json data to post
+        Switch ($Process)
+        {
+            'Agile'
+            {
+                $ProcessId = 'adcc42ab-9882-485e-a3ed-7678f01f66bc'
+            }
+            'Scrum'
+            {
+                $ProcessId = '6b724908-ef14-45cf-84f8-768b5384da45'
+            }
+            'CMMI'
+            {
+                $ProcessId = '27450541-8e31-4150-9947-dc59f998fc01'
+            }
+            default
+            {
+                $ProcessId = Invoke-RestMethod -Uri "$($Websession.uri)/_apis/process/processes?api-version=1.0" -WebSession $WebSession |
+                            Select-Object -Expand Value |
+                            Where-Object {$_.Name -eq $Process} |
+                            Select-Object -Expand id
+
+                If (-not($ProcessId)) {
+                    throw "Process template $Process doesn't exist on target server"
+                }
+
+            }
+        }
+
+        $Json = @"
+{
+  'name': '$Name',
+  'description': '$Descrption',
+  'capabilities': {
+    'versioncontrol': {
+      'sourceControlType': '$VersionControl'
+    },
+    'processTemplate': {
+      'templateTypeId': '$ProcessId'
+    }
+  }
+}
+"@
+
+        try
+        {
+            $jsondata = Invoke-restmethod @Parameters -erroraction Stop -Method Post -Body $Json
+        }
+        catch
+        {
+            throw $_
+        }
+
+        Write-Output $jsondata
+
+    }
+}
+
+function New-TfsTeam
+{
+    <#
+        .SYNOPSIS
+            This function will create a new Team in tfs under a specified Project.
+
+        .DESCRIPTION
+            This function will create a new Team in tfs under a specified Project.
+
+            There is currently no REST api for this functionality so it has to use the horrible
+            InternetExplorer comobject to do all it's work. You need to pass it a username and password
+            so it can login to the actual web page (for VSTS).
+
+        .PARAMETER Name
+            The name of the team to be created
+
+        .PARAMETER Description
+            The description of the team to be created
+
+        .PARAMETER Permissions
+            The permission group to apply to the team for a small set available.
+
+        .PARAMETER Project
+            The name of the project under which to create the team
+
+        .PARAMETER CreateArea
+            Switch to specify if TFS should create the area path automatically
+
+        .PARAMETER Uri
+            Uri of TFS serverm, including /DefaultCollection (or equivilent)
+
+        .PARAMETER Username
+            The username to connect to the remote server with
+
+        .PARAMETER Password
+            Password for the provided username when logging into VSTS
+
+        .PARAMETER UseDefaultCredentails
+            Switch to use the logged in users credentials for authenticating with TFS.
+
+        .EXAMPLE
+            New-TfsTeam -Team 'Engineering' -Project 'Super Product' -Descrition 'Engineering stuff goes here' -Credential (Get-Credential) -Uri 'https://test.visualstudio.com/defaultcollection'
+
+            This will create an Engineering team under the Super Project project with the specified description.
+
+        .EXAMPLE
+            New-TfsTeam -Uri 'https://test.visualstudio.com/defaultcollection' -UseDefaultCredentials -Team 'Engineering' -Project 'Super Product' -Descrition 'Engineering stuff goes here'
+
+            This will create an Engineering team under the Super Project project with the specified description using the provided credentials and uri.
+
+    #>
+    [cmdletbinding()]
+    param
+    (
+        #[Parameter(ParameterSetName='WebSession', Mandatory,ValueFromPipeline)]
+        #[Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+
+        [Parameter(Mandatory)]
+        [String]$Name,
+
+        [String]$Description,
+
+        [parameter(Mandatory)]
+        [String]$Project,
+
+        [Parameter(ParameterSetName='WebSession', Mandatory,ValueFromPipeline)]
+        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [Parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [String]$uri,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$Username,
+
+        [Parameter(ParameterSetName='SingleConnection',Mandatory)]
+        [string]$AccessToken,
+
+        [parameter(ParameterSetName='LocalConnection',Mandatory)]
+        [switch]$UseDefaultCredentials
+
+    )
+    Process
+    {
+
+        $headers = @{'Content-Type'='application/json'}
+        $Parameters = @{}
+
+        #Use Hashtable to create param block for invoke-restmethod and splat it together
+        switch ($PsCmdlet.ParameterSetName)
+        {
+            'SingleConnection'
+            {
+                $WebSession = Connect-TfsServer -Uri $uri -Username $Username -AccessToken $AccessToken
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+
+            }
+            'LocalConnection'
+            {
+                $WebSession = Connect-TfsServer -uri $Uri -UseDefaultCredentials
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+            }
+            'WebSession'
+            {
+                $Uri = $WebSession.uri
+                $Parameters.add('WebSession',$WebSession)
+                $Parameters.add('Headers',$headers)
+                #Connection details here from websession, no creds needed as already there
+            }
+        }
+
+        try
+        {
+            $TeamExists = Invoke-RestMethod -Uri "$uri/_apis/projects/$Project/teams/$($Name)?api-version=2.2" @Parameters -ErrorAction Stop
+        }
+        catch
+        {
+            $ErrorObject = $_ | ConvertFrom-Json
+
+            if (-not($ErrorObject.Message -like "*The team with id '$Name' does not exist*"))
+            {
+                Throw $_
+            }
+        }
+
+        if ($TeamExists)
+        {
+            #Write-Error 'The Team already exists, please choose a new unique name'
+            Throw 'The Team already exists, please choose a new unique name'
+        }
+
+        #Construct the uri and add it to paramaters block
+        $uri = "$uri/_apis/projects/$Project/teams?api-version=2.2"
+        $Parameters.Add('uri',$uri)
+
+        $Json = @"
+{
+  'name': '$Name',
+  'description': '$Descrption'
+  }
+}
+"@
+
+        try
+        {
+            $jsondata = Invoke-restmethod @Parameters -erroraction Stop -Method Post -Body $Json
+        }
+        catch
+        {
+            throw $_
+        }
+
+        Write-Output $jsondata
+    }
+}
