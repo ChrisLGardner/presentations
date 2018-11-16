@@ -29,4 +29,8 @@ Describe "Testing everything is ready for presentations" {
 
         Get-Process -Name "*$Name*" | Should -Be $Null
     } -TestCases $ProcessesToStop
+
+    It "Should have PowerPoint running" {
+        Get-Process -Name POWERPNT -ErrorAction SilentlyContinue | Should -Not -Be $Null
+    }
 }
