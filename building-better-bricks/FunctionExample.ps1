@@ -2,11 +2,11 @@ function Get-UserData {
     [cmdletbinding()]
     [OutputType([PSCustomObject])]
     param (
-        [string]$Name
+        [string]$UserName
     )
 
     [pscustomobject]@{
-        Name = $Name
+        Name = $UserName
         Email = "${name}@domain.tld"
         Computer = 'Localhost'
         PSTypeName = 'Custom.UserData'
@@ -16,11 +16,11 @@ function Get-UserData {
 function Set-UserData {
     [cmdletbinding()]
     param (
-        [parameter(ValueFromPipeline,ParameterSetName='CustomObject')]
+        [parameter(ValueFromPipeline, ParameterSetName = 'CustomObject')]
         [PSTypeName('Custom.UserData')]$inputobject,
 
-        [Parameter(ValueFromPipeline,ParameterSetName='Name')]
-        [string]$Name
+        [Parameter(ValueFromPipeline, ParameterSetName = 'Name')]
+        [string[]]$UserName
     )
 
     process {
@@ -29,7 +29,9 @@ function Set-UserData {
             $inputobject
         }
         else {
-            Get-UserData -Name $Name | Set-UserData
+            foreach ($User in $UserName) {
+                Get-UserData -Name $User | Set-UserData
+            }
         }
     }
 }
