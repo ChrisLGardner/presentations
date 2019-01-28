@@ -44,4 +44,20 @@ https://get-powershellblog.blogspot.com/2017/07/bye-bye-backtick-natural-line.ht
 
 #region output
 
+#region bad
+function Get-Data {
+    Get-ADUser -Filter * -Properties * | Format-List *
+}
+
+Get-Data
+#endregion
+
+#region good
+function Get-Data {
+    Get-ADUser -Filter * -Properties LastLogonDate,PasswordExpiryDate
+}
+
+Get-Data | Format-List *
+#endregion
+
 #endregion

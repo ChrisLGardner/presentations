@@ -26,7 +26,17 @@ Get-ChildItem -Path c:\Backups -Filter *.bak | Copy-Item -Destination D:\Backups
 #region Objects
 
 #region bad creation
-$PortNat = "" | Select-Object -Property Int,Ext,AddText,RemText,FileName,FilePath,Error
+$Object = "" | Select-Object -Property Int,Ext,AddText,RemText,FileName,FilePath,Error
+
+$Object = New-Object PSObject @{
+    Int = ''
+    Ext = ''
+    AddText = ''
+    RemText = ''
+    FileName = ''
+    FilePath = ''
+    Error = ''
+}
 #endregion
 
 #region good creation
@@ -61,8 +71,28 @@ New-Object psobject @{
 $Global:Var = 1234
 #endregion
 
-#region good global
+#region good "global"
 $Script:Var = 1234
+#endregion
+
+#region magic function variables
+$variable = 'Dave'
+
+function Get-something {
+    write-host "hello $variable"
+}
+#endregion
+
+#region function parameters
+function Get-Something {
+    param (
+        $Variable
+    )
+
+    write-host "hello $variable"
+}
+
+Get-Something -Variable 'Dave'
 #endregion
 
 #endregion
