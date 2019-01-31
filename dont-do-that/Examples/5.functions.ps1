@@ -125,6 +125,8 @@ function New-User {
         [ValidateSet('True','False')]
         [bool]$ChangePassword
     )
+
+    $ChangePassword
 }
 #endregion
 
