@@ -37,6 +37,12 @@ $Object = New-Object PSObject @{
     FilePath = ''
     Error = ''
 }
+
+$CustomObject = [PSCustomObject]@{}
+foreach ($Param in $PSBoundParameters.GetEnumerator())
+{
+    Add-Member -InputObject $CustomObject -MemberType NoteProperty -Name $Param.Key -Value $Param.Value
+}
 #endregion
 
 #region good creation
@@ -60,7 +66,19 @@ New-Object psobject @{
     FilePath = ''
     Error = ''
 }
+
+$CustomObject = [PSCustomObject]@{
+    Param     = $Param
+}
 #endregion
+#endregion
+
+#region bad properties
+$LameObject = $FullBodiedObject  | Select SingleProperty
+#endregion
+
+#region good properties
+$FullBodiedObject.SingleProperty
 #endregion
 
 #endregion
@@ -93,6 +111,19 @@ function Get-Something {
 }
 
 Get-Something -Variable 'Dave'
+#endregion
+
+#endregion
+
+#region naming
+
+#region bad
+$v = $i + 1
+$alllowercasename
+#endregion
+
+#region good
+
 #endregion
 
 #endregion

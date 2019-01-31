@@ -31,3 +31,43 @@ foreach ($user in $userlist) {
 #endregion
 
 #endregion
+
+#region using arrays
+
+#region bad
+$array = @(
+    'thing1'
+    'thing2'
+    'thing3'
+)
+
+0..(($array.count) -1) | % {
+    $setVar = Get-Something -Parameter ($array[$_]) -ErrorAction Silentlycontinue
+
+    if (!$setVar) {
+        throw "Something broke yo!"
+    }
+}
+#endregion
+
+#region good
+foreach ($item in $array) {
+    $setVar = Get-Something -Parameter $Item -ErrorAction Silentlycontinue
+
+    if (!$setVar) {
+        throw "Something broke yo!"
+    }
+}
+
+#OR (v4+)
+
+$array.foreach({
+    $setVar = Get-Something -Parameter $_ -ErrorAction Silentlycontinue
+
+    if (!$setVar) {
+        throw "Something broke yo!"
+    }
+})
+#endregion
+
+#endregion

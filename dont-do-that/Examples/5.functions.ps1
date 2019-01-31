@@ -1,5 +1,23 @@
 break
 
+#region parameters
+
+#region bad
+function get-data{
+    $UserName = read-host "Enter a username"
+}
+#endregion
+
+#region good
+function get-data{
+    param(
+        [string]$UserName
+    )
+}
+#endregion
+
+#endregion
+
 #region parameter sets
 
 #region bad
@@ -117,6 +135,45 @@ function New-User {
 
         [switch]$ChangePassword
     )
+}
+#endregion
+
+#endregion
+
+#region output types
+
+#region bad
+
+function Get-data {
+    param (
+        $Computers
+    )
+    
+    $Users = Get-ADUser -Filter * | Where { $_.ComputerName -in $Computers }
+    Invoke-Command -ComputerName $Computers -Scriptblock {
+        Get-CimInstance -ClassName Win32_OperatingSystem
+    }
+
+    return $Users
+}
+
+#endregion
+
+#region good
+function Get-data {
+    param (
+        $Computers
+    )
+    
+    $Users = Get-ADUser -Filter * | Where { $_.ComputerName -in $Computers }
+    $ComputerData = Invoke-Command -ComputerName $Computers -Scriptblock {
+        Get-CimInstance -ClassName Win32_OperatingSystem
+    }
+
+    [PSCustomObject]@{
+        Users = $Users
+        Computers = $ComputerData
+    }
 }
 #endregion
 

@@ -1,8 +1,10 @@
 break
 
-Outputting logs to a file
+#Outputting logs to a file
 
-Loading creds from a file automatically on import
+#Loading creds from a file automatically on import
+
+#Debugging with dedicated debugger/pester instead of write-host
 
 #region GUIs
 
@@ -19,3 +21,5 @@ psedit '.\dont-do-that\Examples\Script GUI.ps1'
 #endregion
 
 #endregion
+
+
