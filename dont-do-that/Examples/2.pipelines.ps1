@@ -30,9 +30,9 @@ Get-ChildItem @GetChildItemParams
 Get-ChildItem -Path C:\Some\Really\Long\Path\Here |
         Where-Object {$_.Name -like '*.ps1'}
 
-if ($SomeVar -eq '1234' -and
+if ($SomeVar.member -eq '1234' -and
     $OtherVar -eq 'abcd' -and
-    $ThirdVar -like '*abc*123') {
+    $ThirdVar.otherproperty -like '*abc*123') {
 
     Do-TheThing
 }

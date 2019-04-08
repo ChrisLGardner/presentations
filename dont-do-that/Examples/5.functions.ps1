@@ -56,7 +56,7 @@ Function Get-Data {
         [string]$Set2
     )
 
-    if ($PSCmdlet.ParameterSetName = 'Set1') {
+    if ($PSCmdlet.ParameterSetName -eq 'Set1') {
         "$Name : $Set1"
     }
     else {
@@ -122,7 +122,7 @@ function New-User {
     param (
         [string]$Name,
 
-        [ValidateSet('True','False')]
+        [ValidateSet($True,$False)]
         [bool]$ChangePassword
     )
 
@@ -137,6 +137,8 @@ function New-User {
 
         [switch]$ChangePassword
     )
+
+    $ChangePassword
 }
 #endregion
 
