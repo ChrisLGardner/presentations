@@ -13,7 +13,7 @@ foreach ($user in $userlist) {
 }
 #endregion
 
-#region good
+#region good    
 $array = foreach ($user in $userlist) {
     [pscustomobject]@{
         Username = $User.Name
@@ -54,7 +54,7 @@ $array = @(
 foreach ($item in $array) {
     $setVar = Get-Something -Parameter $Item -ErrorAction Silentlycontinue
 
-    if (!$setVar) {
+    if (-not $setVar) {
         throw "Something broke yo!"
     }
 }
@@ -64,7 +64,7 @@ foreach ($item in $array) {
 $array.foreach({
     $setVar = Get-Something -Parameter $_ -ErrorAction Silentlycontinue
 
-    if (!$setVar) {
+    if (-not $setVar) {
         throw "Something broke yo!"
     }
 })

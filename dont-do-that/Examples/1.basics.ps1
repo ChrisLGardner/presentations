@@ -7,9 +7,12 @@ gps | ? name -like p*w* | % na*
 #endregion
 
 #region good
-Get-Process | Where-Object name -like p*w* | Foreach-Object -MemberName Name
+Get-Process |
+    Where-Object name -like p*w* |
+    Foreach-Object -MemberName Name
 #endregion
 
+$var | foreach { $_ -eq $PsItem}
 #endregion
 
 #region positional
@@ -115,15 +118,17 @@ Get-Something -Variable 'Dave'
 
 #endregion
 
-#region naming
+#region naming  
 
 #region bad
 $v = $i + 1
 $alllowercasename
+
+$strName
 #endregion
 
 #region good
-
+$AllLowerCaseName
 #endregion
 
 #endregion
