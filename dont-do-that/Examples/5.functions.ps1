@@ -11,6 +11,7 @@ function get-data{
 #region good
 function get-data{
     param(
+        [parameter(Mandatory)]
         [string]$UserName
     )
 }
@@ -73,9 +74,9 @@ Function Get-Data {
 function Set-Data {
     param (
         [string]$Name,
-        
+
         [string]$NewName,
-        
+
         [switch]$WhatIf,
         [switch]$Confirm
     )
@@ -86,7 +87,7 @@ function Set-Data {
     }
     elseif ($Confirm) {
         $UserInput = Read-Host "Are you sure you want to rename $Name to $NewName?"
-        
+
         if ($UserInput -eq 'N') {
             return
         }
@@ -102,7 +103,7 @@ function Set-Data {
     [cmdletbinding(SupportsShouldProcess, ConfirmImpact='High')]
     param (
         [string]$Name,
-        
+
         [string]$NewName
     )
 
@@ -152,7 +153,7 @@ function Get-data {
     param (
         $Computers
     )
-    
+
     $Users = Get-ADUser -Filter * | Where { $_.ComputerName -in $Computers }
     Invoke-Command -ComputerName $Computers -Scriptblock {
         Get-CimInstance -ClassName Win32_OperatingSystem
@@ -168,7 +169,7 @@ function Get-data {
     param (
         $Computers
     )
-    
+
     $Users = Get-ADUser -Filter * | Where { $_.ComputerName -in $Computers }
     $ComputerData = Invoke-Command -ComputerName $Computers -Scriptblock {
         Get-CimInstance -ClassName Win32_OperatingSystem
@@ -179,6 +180,40 @@ function Get-data {
         Computers = $ComputerData
     }
 }
+#endregion
+
+#endregion
+
+#region parameter types
+
+#region less good
+param (
+    [string]$path
+)
+#endregion
+
+#region good
+param (
+    [System.IO.FileInfo]$path
+)
+#endregion
+
+#endregion
+
+#region credentials
+
+#region bad
+param (
+    $Username,
+
+    $Password
+)
+#endregion
+
+#region bad
+param (
+    [PSCredential]$Credetial
+)
 #endregion
 
 #endregion
