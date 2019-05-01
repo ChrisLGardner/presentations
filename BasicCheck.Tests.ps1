@@ -22,6 +22,9 @@ Describe "Testing everything is ready for presentations" {
         @{
             Name = 'Teams'
         }
+        @{
+            Name = 'Discord'
+        }
     )
 
     It "Should not have <Name> running" {
