@@ -1,5 +1,5 @@
-[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") 
-[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") 
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
 
 #######################
 # Gets all files in target
@@ -67,7 +67,7 @@ Function Get-DateFromCalendar {
 }
 
 ##########################
-# Gets Parameter names from 
+# Gets Parameter names from
 # script file at path provided
 #
 #########################
@@ -86,7 +86,7 @@ Function Get-Params {
 }
 
 ######################
-# Hides all panels to 
+# Hides all panels to
 # ensure only selected
 # script panel is visible
 #
@@ -104,13 +104,13 @@ Function Clear-Panels {
 }
 
 ##########################
-# Runs script with correct 
-# parameters pulled from 
+# Runs script with correct
+# parameters pulled from
 # text boxes on form
 #
 #########################
 Function Run-Script {
-    
+
     $ArrayOfVariables =@()
     $ParamsNames = Get-Params ($FolderLocation + $ScriptSource[$ComboBox.SelectedIndex])
     foreach ($control in $objForm.Controls) {
@@ -140,7 +140,7 @@ Function Show-ParamsBoxes {
     param (
 		[string]$PathToScript = $args[0]
 	)
-	
+
 	$ParamsNames = Get-Params $PathToScript
 	$ParamButton = $null
 	$ParamDate = $null
@@ -152,11 +152,11 @@ Function Show-ParamsBoxes {
 			$ParamLabels += New-Object System.Windows.Forms.Label
 			$ParamLabels[$count].Text = "Browse to required file"
 			$ParamLabels[$count].Size = $SizeObject
-			
+
 			$ParamBoxes += New-Object System.Windows.Forms.TextBox
 			$ParamBoxes[$count].Name = ($param + "TextBox")
             $ParamBoxes[$count].Size = $SizeObject
-			
+
             $ParamButton = New-Object System.Windows.Forms.Button
             $ParamButton.Text = "Browse"
             $ParamButton.Add_Click({
@@ -176,11 +176,11 @@ Function Show-ParamsBoxes {
 			$ParamLabels += New-Object System.Windows.Forms.Label
 			$ParamLabels[$count].Text = "Enter date required (dd/mm/yyyy):"
 			$ParamLabels[$count].Size = $SizeObject
-			
+
 			$ParamBoxes += New-Object System.Windows.Forms.TextBox
 			$ParamBoxes[$count].Name = ($param + "TextBox")
             $ParamBoxes[$count].Size = $SizeObject
-			
+
 			$ParamDate = New-Object System.Windows.Forms.MonthCalendar
 			$ParamDate.ShowTodayCircle = $false
 			$ParamDate.MaxSelectionCount = 1
@@ -215,7 +215,7 @@ Function Show-ParamsBoxes {
 			$ParamLabels += New-Object System.Windows.Forms.Label
 			$ParamLabels[$count].Text = "Enter value for " + $param + ":"
 			$ParamLabels[$count].Size = $SizeObject
-			
+
 			$ParamBoxes += New-Object System.Windows.Forms.TextBox
             $ParamBoxes[$count].Name = $param + "TextBox"
 			$ParamBoxes[$count].Size = $SizeObject
@@ -257,15 +257,15 @@ $SizeObject = New-Object System.Drawing.Size(200,20)
 # Beginning of form layout
 #
 ###########################################################
-$objForm = New-Object System.Windows.Forms.Form 
+$objForm = New-Object System.Windows.Forms.Form
 $objForm.Text = "Script Selection Form"
-$objForm.Size = New-Object System.Drawing.Size(300,500) 
+$objForm.Size = New-Object System.Drawing.Size(300,500)
 $objForm.StartPosition = "CenterScreen"
 
 $objForm.KeyPreview = $True
-$objForm.Add_KeyDown({if ($_.KeyCode -eq "Enter") 
+$objForm.Add_KeyDown({if ($_.KeyCode -eq "Enter")
     {$x=$objTextBox.Text;$objForm.Close()}})
-$objForm.Add_KeyDown({if ($_.KeyCode -eq "Escape") 
+$objForm.Add_KeyDown({if ($_.KeyCode -eq "Escape")
     {$objForm.Close()}})
 
 ################################OTHER CONTROLS HERE#####################################
@@ -298,10 +298,10 @@ $CancelButton.Add_Click({$objForm.Close()})
 $objForm.Controls.Add($CancelButton)
 
 $objLabel = New-Object System.Windows.Forms.Label
-$objLabel.Location = New-Object System.Drawing.Size(10,20) 
-$objLabel.Size = New-Object System.Drawing.Size(280,40) 
+$objLabel.Location = New-Object System.Drawing.Size(10,20)
+$objLabel.Size = New-Object System.Drawing.Size(280,40)
 $objLabel.Text = "Select a script from the dropdown and enter any information required:"
-$objForm.Controls.Add($objLabel) 
+$objForm.Controls.Add($objLabel)
 
 #$objForm.Topmost = $True
 

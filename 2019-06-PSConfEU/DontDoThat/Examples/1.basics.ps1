@@ -12,7 +12,6 @@ Get-Process |
     Foreach-Object -MemberName Name
 #endregion
 
-$var | foreach { $_ -eq $PsItem}
 #endregion
 
 #region positional
@@ -118,7 +117,7 @@ Get-Something -Variable 'Dave'
 
 #endregion
 
-#region naming  
+#region naming
 
 #region bad
 $v = $i + 1
@@ -129,6 +128,20 @@ $strName
 
 #region good
 $AllLowerCaseName
+#endregion
+
+#endregion
+
+#region conditions
+
+#region bad (mostly)
+if (-not ($thing -eq 'value')){
+}
+#endregion
+
+#region good (usually)
+if ($thing -ne 'value'){
+}
 #endregion
 
 #endregion

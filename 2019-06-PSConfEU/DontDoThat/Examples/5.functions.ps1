@@ -2,19 +2,29 @@ break
 
 #region parameters
 
-#region bad
+#region bad input
 function get-data{
     $UserName = read-host "Enter a username"
 }
 #endregion
 
-#region good
+#region good input
 function get-data{
     param(
         [parameter(Mandatory)]
         [string]$UserName
     )
 }
+#endregion
+
+#region bad consistency
+Get-Command -Name Get-Team -Syntax
+Get-Command -Name Set-Team -Syntax
+#endregion
+
+#region good consistency
+Get-Command -Name Get-Item -Syntax
+Get-Command -Name Set-Item -Syntax
 #endregion
 
 #endregion
@@ -206,13 +216,13 @@ param (
 param (
     $Username,
 
-    $Password
+    [securestring]$Password
 )
 #endregion
 
-#region bad
+#region good
 param (
-    [PSCredential]$Credetial
+    [PSCredential]$Credential
 )
 #endregion
 

@@ -13,7 +13,7 @@ foreach ($user in $userlist) {
 }
 #endregion
 
-#region good    
+#region good
 $array = foreach ($user in $userlist) {
     [pscustomobject]@{
         Username = $User.Name
@@ -61,13 +61,27 @@ foreach ($item in $array) {
 
 #OR (v4+)
 
-$array.foreach({
+$array.foreach{
     $setVar = Get-Something -Parameter $_ -ErrorAction Silentlycontinue
 
     if (-not $setVar) {
         throw "Something broke yo!"
     }
-})
+}
 #endregion
 
+#endregion
+
+#region building hashtables
+
+#region bad
+$Hashtable = @{}
+$Hashtable.Key = 'Value'
+#endregion
+
+#region good
+$hashtable = @{
+    Key = 'Value'
+}
+#endregion
 #endregion

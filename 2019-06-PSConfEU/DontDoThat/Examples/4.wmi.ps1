@@ -7,7 +7,7 @@ Get-WmiObject -Class Win32_OperatingSystem
 #endregion
 
 #region good
-Get-CimInstance -ClassName Win32_OperatingSystem
+Get-CimInstance -Class Win32_OperatingSystem
 #endregion
 
 #endregion
@@ -15,7 +15,7 @@ Get-CimInstance -ClassName Win32_OperatingSystem
 #region Find Software
 
 #region bad
-Get-WmiObject -Class Win32_Product
+(Get-WmiObject -Class Win32_Product | where name -eq $variable).Uninstall()
 #endregion
 
 #region good
