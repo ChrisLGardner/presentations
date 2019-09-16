@@ -1,0 +1,540 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "envPrefix": {
+        "type": "string",
+        "defaultValue": "demo",
+        "metadata": {
+          "description": "Common prefix for all resource naming"
+        }
+      },
+      "envLocation": {
+        "type": "string",
+        "defaultValue": "North Europe",
+        "allowedValues": [
+          "North Europe",
+          "West Europe",
+          "UK West",
+          "UK South"
+        ],
+        "metadata": {
+          "description": "Location for all resources"
+        }
+      },
+      "adminUsername": {
+        "type": "string",
+        "defaultValue": "demoadmin",
+        "metadata": {
+          "description": "Admin username for environment"
+        }
+      },
+      "adminPassword": {
+        "type": "securestring",
+        "metadata": {
+          "description": "Admin password for environment"
+        }
+      },
+      "artifactsLocation": {
+        "type": "string",
+        "defaultValue": "https://raw.githubusercontent.com/rikhepworth/ResourceTemplates/master/IaaSDeployforDemo/IaaSDeployforDemo",
+        "metadata": {
+          "description": "Storage Account/GitHub base uri for required files"
+        }
+      }
+    },
+    "variables": {
+      "StorageAccount": {
+        "Name": "[concat(parameters('envPrefix'),'storage')]",
+        "Type": "Standard_LRS",
+        "Location": "[parameters('envLocation')]",
+        "EndPoint": "blob.core.windows.net"
+      },
+      "VirtualNetwork": {
+        "Name": "[concat(parameters('envPrefix'), 'network')]",
+        "Location": "[parameters('envLocation')]",
+        "Prefix": "192.168.0.0/16",
+        "Subnet1Name": "Subnet-1",
+        "Subnet1Prefix": "192.168.1.0/24"
+      },
+      "StdVmImageReference": {
+        "publisher": "MicrosoftWindowsServer",
+        "offer": "WindowsServer",
+        "sku": "2012-R2-Datacenter",
+        "version": "latest"
+      },
+      "domainName": "[concat(parameters('envPrefix'), '.local')]",
+      "WAPPublicDNS": "[concat(parameters('envPrefix'), 'fed')]",
+      "WebPublicDNS": "[concat(parameters('envPrefix'), 'api')]",
+      "vmConfiguration": {
+        "dc": {
+          "name": "DC",
+          "size": "Standard_A1"
+        },
+        "adfs": {
+          "name": "ADFS",
+          "size": "Standard_A1"
+        },
+        "wap": {
+          "name": "WAP",
+          "size": "Standard_A1"
+        }
+      }
+    },
+    "resources": [
+      {
+        "name": "NetworkAndStorage",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/NetworkAndStorage.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "StorageAccount": {
+              "value": "[variables('StorageAccount')]"
+            }
+          }
+        }
+      },
+      {
+        "name": "DomainController",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/NetworkAndStorage"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/DomainController.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "VirtualNetworkId": {
+              "value": "[reference('NetworkAndStorage').outputs.VirtualNetworkId.value]"
+            },
+            "StorageAccount": {
+              "value": "[variables('StorageAccount')]"
+            },
+            "StorageAccountId": {
+              "value": "[reference('NetworkAndStorage').outputs.StorageAccountId.value]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "vmImageReference": {
+              "value": "[variables('StdVmImageReference')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').dc.name]"
+            },
+            "vmSize": {
+              "value": "[variables('vmConfiguration').dc.size]"
+            }
+          }
+        }
+      },
+      {
+        "name": "UpdateVNetDNS",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/NetworkAndStorage",
+          "Microsoft.Resources/deployments/DomainController",
+          "Microsoft.Resources/deployments/DomainControllerDSC"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/UpdateVNetDNS.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "DNSaddress": {
+              "value": "[reference('DomainController').outputs.ipAddress.value]"
+            }
+          }
+        }
+      },
+      {
+        "name": "ADFSserver",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/NetworkAndStorage"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/ADFSserver.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "VirtualNetworkId": {
+              "value": "[reference('NetworkAndStorage').outputs.VirtualNetworkId.value]"
+            },
+            "StorageAccount": {
+              "value": "[variables('StorageAccount')]"
+            },
+            "StorageAccountId": {
+              "value": "[reference('NetworkAndStorage').outputs.StorageAccountId.value]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "vmImageReference": {
+              "value": "[variables('StdVmImageReference')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').adfs.name]"
+            },
+            "vmSize": {
+              "value": "[variables('vmConfiguration').adfs.size]"
+            }
+          }
+        }
+      },
+      {
+        "name": "WAPServer",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/NetworkAndStorage"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/WAPServer.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "VirtualNetworkId": {
+              "value": "[reference('NetworkAndStorage').outputs.VirtualNetworkId.value]"
+            },
+            "StorageAccount": {
+              "value": "[variables('StorageAccount')]"
+            },
+            "StorageAccountId": {
+              "value": "[reference('NetworkAndStorage').outputs.StorageAccountId.value]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "vmImageReference": {
+              "value": "[variables('StdVmImageReference')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').wap.name]"
+            },
+            "vmSize": {
+              "value": "[variables('vmConfiguration').wap.size]"
+            }
+          }
+        }
+      },
+      {
+        "name": "DomainControllerDSC",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/DomainController"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/DomainControllerDSC.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "domainName": {
+              "value": "[variables('domainName')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').dc.name]"
+            }
+          }
+        }
+      },
+      {
+        "name": "DomainControllerCS",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/DomainController",
+          "Microsoft.Resources/deployments/DomainControllerDSC",
+          "Microsoft.Resources/deployments/ADFSserverDSC",
+          "Microsoft.Resources/deployments/WAPServerDSC"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/DomainControllerCS.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "WAPPublicDNS": {
+              "value": "[reference('WAPServer').outputs.wapfqdn.value]"
+            },
+            "WebPublicDNS": {
+              "value": "[variables('domainName')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').dc.name]"
+            }
+          }
+        }
+      },
+      {
+        "name": "ADFSserverDSC",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/DomainControllerDSC",
+          "Microsoft.Resources/deployments/ADFSserver",
+          "Microsoft.Resources/deployments/UpdateVNetDNS"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/ADFSserverDSC.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "domainName": {
+              "value": "[variables('domainName')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').adfs.name]"
+            },
+            "vmDCName": {
+              "value": "[variables('vmConfiguration').dc.name]"
+            }
+          }
+        }
+      },
+      {
+        "name": "ADFSserverCS",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/DomainControllerCS"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/ADFSserverCS.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "WAPPublicDNS": {
+              "value": "[reference('WAPServer').outputs.wapfqdn.value]"
+            },
+            "WebPublicDNS": {
+              "value": "[variables('domainName')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').adfs.name]"
+            },
+            "vmDCName": {
+              "value": "[variables('vmConfiguration').dc.name]"
+            }
+
+          }
+        }
+      },
+      {
+        "name": "WAPServerDSC",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/DomainControllerDSC",
+          "Microsoft.Resources/deployments/WAPServer",
+          "Microsoft.Resources/deployments/UpdateVNetDNS"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/WAPServerDSC.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "domainName": {
+              "value": "[variables('domainName')]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').wap.name]"
+            }
+          }
+        }
+      },
+      {
+        "name": "WAPServerCS",
+        "type": "Microsoft.Resources/deployments",
+        "apiVersion": "2015-01-01",
+        "dependsOn": [
+          "Microsoft.Resources/deployments/ADFSserverCS"
+        ],
+        "properties": {
+          "mode": "Incremental",
+          "templateLink": {
+            "uri": "[concat(parameters('artifactsLocation'), '/Templates/NestedDeploy/WAPServerCS.json')]",
+            "contentVersion": "1.0.0.0"
+          },
+          "parameters": {
+            "VirtualNetwork": {
+              "value": "[variables('VirtualNetwork')]"
+            },
+            "AdminUsername": {
+              "value": "[parameters('adminUsername')]"
+            },
+            "adminPassword": {
+              "value": "[parameters('adminPassword')]"
+            },
+            "envPrefix": {
+              "value": "[parameters('envPrefix')]"
+            },
+            "artifactsLocation": {
+              "value": "[parameters('artifactsLocation')]"
+            },
+            "WAPPublicDNS": {
+              "value": "[reference('WAPServer').outputs.wapfqdn.value]"
+            },
+            "vmName": {
+              "value": "[variables('vmConfiguration').wap.name]"
+            },
+            "vmDCName": {
+              "value": "[variables('vmConfiguration').dc.name]"
+            },
+            "vmADFSName": {
+              "value": "[variables('vmConfiguration').adfs.name]"
+            }
+
+          }
+        }
+      }
+    ],
+    "outputs": {
+
+    }
+  }
