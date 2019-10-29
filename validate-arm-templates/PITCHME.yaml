@@ -1,0 +1,48 @@
+# ARM Template Validation using PowerShell classes
+
+#
+# Theme Template
+# Doc: https://gitpitch.com/docs/themes/default
+#
+code-line-numbers : true
+
+theme: template
+theme-background : [ "#FFF" ]
+theme-headline   : [ "Raleway", "#000000", "none" ]
+theme-byline     : [ "Raleway", "#000000", "none" ]
+theme-text       : [ "Ubuntu", "#000000", "none" ]
+theme-links      : [ "#000000", "#000000" ]
+theme-code       : [ "Source Code Pro" ]
+theme-controls   : [ "#484848" ]
+theme-margins    : [ "0", "15px" ]
+# background: 2019-10-12-PS-Saturday-Paris/assets/img/MainSlide.png
+
+#
+# Highlight Setting
+# Doc: https://gitpitch.com/docs/settings/highlight
+#
+highlight : tomorrow
+
+#
+# Theme-Override Setting
+# Doc: https://gitpitch.com/docs/settings/custom-theme
+#
+theme-override: assets/css/PITCHME.css
+
+#
+# Layout Setting
+# Doc: https://gitpitch.com/docs/settings/layout
+#
+layout : center
+
+#
+# Footnote Setting
+# Doc: https://gitpitch.com/docs/settings/footnote
+#
+footnote : "@HalbaradKenafin"
+
+#
+# Published Setting
+# Doc: https://gitpitch.com/docs/settings/published
+#
+published : true
