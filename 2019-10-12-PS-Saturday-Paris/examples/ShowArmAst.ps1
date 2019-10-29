@@ -1,5 +1,4 @@
 $Template = Invoke-ArmTemplateValidation -Path C:\Source\github\ArmTemplateValidation\tests\unit\TestData\ExampleTemplate.json -Parameters @{VirtualMachineName='abc123'}
-  
 function write-template {
     param (
         $Template,
@@ -91,3 +90,9 @@ $Template2 = Invoke-ArmTemplateValidation -Path C:\Source\github\presentations\b
     AdminPassword = 'abc123'
 } -Ea Break
 
+
+graph g {
+    $script:SubGraph = 0
+    write-template $Template2 PrimaryTemplate
+
+} | Export-PSGraph -ShowGraph

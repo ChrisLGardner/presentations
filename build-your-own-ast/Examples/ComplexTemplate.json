@@ -37,7 +37,7 @@
       },
       "artifactsLocation": {
         "type": "string",
-        "defaultValue": "https://raw.githubusercontent.com/rikhepworth/ResourceTemplates/master/IaaSDeployforDemo/IaaSDeployforDemo",
+        "defaultValue": "https://raw.githubusercontent.com/chrislgardner/ResourceTemplates/master/IaaSDeployforDemo/IaaSDeployforDemo",
         "metadata": {
           "description": "Storage Account/GitHub base uri for required files"
         }
@@ -121,13 +121,13 @@
               "value": "[variables('VirtualNetwork')]"
             },
             "VirtualNetworkId": {
-              "value": "[reference('NetworkAndStorage').outputs.VirtualNetworkId.value]"
+              "value": "VirtualNetwork"
             },
             "StorageAccount": {
               "value": "[variables('StorageAccount')]"
             },
             "StorageAccountId": {
-              "value": "[reference('NetworkAndStorage').outputs.StorageAccountId.value]"
+              "value": "StorageAccountId"
             },
             "AdminUsername": {
               "value": "[parameters('adminUsername')]"
@@ -173,7 +173,7 @@
               "value": "[variables('VirtualNetwork')]"
             },
             "DNSaddress": {
-              "value": "[reference('DomainController').outputs.ipAddress.value]"
+              "value": "192.168.0.4"
             }
           }
         }
@@ -196,13 +196,13 @@
               "value": "[variables('VirtualNetwork')]"
             },
             "VirtualNetworkId": {
-              "value": "[reference('NetworkAndStorage').outputs.VirtualNetworkId.value]"
+              "value": "VirtualNetwork"
             },
             "StorageAccount": {
               "value": "[variables('StorageAccount')]"
             },
             "StorageAccountId": {
-              "value": "[reference('NetworkAndStorage').outputs.StorageAccountId.value]"
+              "value": "StorageAccountId"
             },
             "AdminUsername": {
               "value": "[parameters('adminUsername')]"
@@ -246,13 +246,13 @@
               "value": "[variables('VirtualNetwork')]"
             },
             "VirtualNetworkId": {
-              "value": "[reference('NetworkAndStorage').outputs.VirtualNetworkId.value]"
+              "value": "VirtualNetwork"
             },
             "StorageAccount": {
               "value": "[variables('StorageAccount')]"
             },
             "StorageAccountId": {
-              "value": "[reference('NetworkAndStorage').outputs.StorageAccountId.value]"
+              "value": "StorageAccountId"
             },
             "AdminUsername": {
               "value": "[parameters('adminUsername')]"
@@ -349,7 +349,7 @@
               "value": "[parameters('artifactsLocation')]"
             },
             "WAPPublicDNS": {
-              "value": "[reference('WAPServer').outputs.wapfqdn.value]"
+              "value": "192.168.0.7"
             },
             "WebPublicDNS": {
               "value": "[variables('domainName')]"
@@ -433,7 +433,7 @@
               "value": "[parameters('artifactsLocation')]"
             },
             "WAPPublicDNS": {
-              "value": "[reference('WAPServer').outputs.wapfqdn.value]"
+              "value": "192.168.0.7"
             },
             "WebPublicDNS": {
               "value": "[variables('domainName')]"
@@ -518,7 +518,7 @@
               "value": "[parameters('artifactsLocation')]"
             },
             "WAPPublicDNS": {
-              "value": "[reference('WAPServer').outputs.wapfqdn.value]"
+              "value": "192.168.0.7"
             },
             "vmName": {
               "value": "[variables('vmConfiguration').wap.name]"
