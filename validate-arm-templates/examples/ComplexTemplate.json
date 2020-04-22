@@ -8,7 +8,7 @@
         "metadata": {
           "description": "Common prefix for all resource naming"
         }
-      },
+      }, 
       "envLocation": {
         "type": "string",
         "defaultValue": "North Europe",
@@ -37,7 +37,7 @@
       },
       "artifactsLocation": {
         "type": "string",
-        "defaultValue": "https://raw.githubusercontent.com/rikhepworth/ResourceTemplates/master/IaaSDeployforDemo/IaaSDeployforDemo",
+        "defaultValue": "https://raw.githubusercontent.com/chrislgardner/ResourceTemplates/master/IaaSDeployforDemo/IaaSDeployforDemo",
         "metadata": {
           "description": "Storage Account/GitHub base uri for required files"
         }

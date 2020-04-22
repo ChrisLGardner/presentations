@@ -5,7 +5,7 @@
         "VirtualMachineName": {
             "type": "string"
         } 
-    },
+    }, 
     "variables": {},
     "resources": [
         {

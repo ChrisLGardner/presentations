@@ -1,5 +1,5 @@
 $Template = Invoke-ArmTemplateValidation -Path C:\Source\github\ArmTemplateValidation\tests\unit\TestData\ExampleTemplate.json -Parameters @{VirtualMachineName='abc123'}
-function write-template {
+ function write-template {
     param (
         $Template,
         $TemplateName

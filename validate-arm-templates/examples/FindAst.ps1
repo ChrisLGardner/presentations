@@ -14,7 +14,7 @@ Using Namespace System.Management.Automation.Language
         Get-LocalUser | Where-Object Name -eq $Username | Select-Object Name,Enabled
     }
 '@)
- 
+  
     $Result = $ScriptBlock.Ast.FindAll({
         param ($ast)
 
